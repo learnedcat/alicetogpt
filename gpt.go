@@ -5,40 +5,34 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/openai/openai-go/v3"
-	"github.com/openai/openai-go/v3/option"
-	"github.com/openai/openai-go/v3/responses"
+	openrouter "github.com/revrost/go-openrouter"
 )
 
-func query(ctx context.Context, message string, previousResponseID string) (Reply, error) {
-	client := openai.NewClient(
-		option.WithAPIKey(os.Getenv("OPENAI_API_KEY")),
+func query(ctx context.Context, message string, _ string) (Reply, error) {
+	client := openrouter.NewClient(
+		os.Getenv("OPENROUTER_API_KEY"),
 	)
 
-	/*
-		var agentTools = []responses.ToolUnionParam{
-			{OfWebSearch: &responses.WebSearchToolParam{Type: "web_search_preview"}},
-		}
-	*/
-
-	params := responses.ResponseNewParams{
-		Model: openai.ChatModelGPT5Nano,
-		Input: responses.ResponseNewParamsInputUnion{OfString: openai.String("В каком году создали Chat GPT?")},
-		Store: openai.Bool(true),
-		//Tools:              agentTools,
+	req := openrouter.ChatCompletionRequest{
+		Model: os.Getenv("OPENROUTER_GPT_NAME"),
+		Messages: []openrouter.ChatCompletionMessage{
+			openrouter.UserMessage(message),
+		},
 	}
 
-	if len(previousResponseID) > 0 {
-		params.PreviousResponseID = openai.String(previousResponseID)
-	}
-
-	resp, err := client.Responses.New(ctx, params)
+	resp, err := client.CreateChatCompletion(ctx, req)
 	if err != nil {
-		fmt.Println("Error: %v", err)
+		fmt.Printf("Error from gpt: %v", err)
 		return Reply{}, err
 	}
 
-	fmt.Println(resp.OutputText())
+	content := ""
+	if len(resp.Choices) > 0 {
+		content = resp.Choices[0].Message.Content.Text
+	}
 
-	return Reply{Value: resp.OutputText(), ID: resp.ID}, nil
+	return Reply{
+		Value: content,
+		ID:    resp.ID,
+	}, nil
 }

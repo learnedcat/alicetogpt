@@ -11,6 +11,8 @@ services:
 
     environment:
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
+      OPENROUTER_API_KEY: "${OPENROUTER_API_KEY}"
+      OPENROUTER_GPT_NAME: "${OPENROUTER_GPT_NAME}"
 
     logging:
       options:

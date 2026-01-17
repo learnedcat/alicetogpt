@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -17,7 +18,7 @@ import (
 /* ================= CONFIG ================= */
 
 const (
-	answerTimeout = 3 * time.Second
+	answerTimeout = 5 * time.Second
 	sessionTTL    = 30 * time.Minute
 	gptTimeout    = 5 * time.Second
 
@@ -139,8 +140,9 @@ func handleDialog(res *AliceResponse, req *AliceRequest) {
 	}
 
 	if strings.HasPrefix(strings.ToLower(utterance), cutWord) {
-		utterance = strings.TrimSpace(strings.TrimPrefix(utterance, cutWord))
+		utterance = strings.TrimSpace(utterance[len(cutWord):])
 	}
+	fmt.Printf("Utterance: %s\n", utterance)
 
 	state := getUserState(sessionID)
 
@@ -164,6 +166,8 @@ func handleDialog(res *AliceResponse, req *AliceRequest) {
 
 	select {
 	case reply := <-state.Pending:
+		fmt.Printf("Response: %s\n", reply.Value)
+
 		res.Response.Text = reply.Value
 		state.PreviousResponseID = reply.ID
 		state.Pending = nil
@@ -181,7 +185,7 @@ func askGPT(request string, previousResponseID string, ch chan<- Reply) {
 
 	reply, err := query(ctx, request, previousResponseID)
 	if err != nil {
-		ch <- Reply{Value: "Не удалось получить ответ"}
+		ch <- Reply{Value: fmt.Sprintf("Не удалось получить ответ: %v", err)}
 		return
 	}
 	ch <- reply
